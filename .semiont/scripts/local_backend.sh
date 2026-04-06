@@ -246,5 +246,5 @@ $RT run --publish 4000:4000 \
   --env NEO4J_HOST="$HOST_ADDR" \
   --env QDRANT_HOST="${HOST_ADDR}" \
   --env OLLAMA_HOST="${HOST_ADDR}" \
-  "${ADMIN_ARGS[@]}" \
+  ${ADMIN_ARGS[@]+"${ADMIN_ARGS[@]}"} \
   -it semiont-backend
