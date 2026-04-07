@@ -162,8 +162,8 @@ fi
 # Determine model cache: prefer host ~/.ollama if present (shared with local Ollama)
 OLLAMA_VOLUME=""
 if [ -d "${HOME}/.ollama" ]; then
-  printf "Found local Ollama model cache at %s. Share it with the container? [Y/n] " "${HOME}/.ollama"
-  read -r answer
+  printf "Found local Ollama model cache at %s. Share it with the container? [Y/n] (auto-yes in 10s) " "${HOME}/.ollama"
+  read -r -t 10 answer || answer=""
   if [ "${answer}" != "n" ] && [ "${answer}" != "N" ]; then
     OLLAMA_VOLUME="${HOME}/.ollama:/root/.ollama"
     echo "Using host model cache."
