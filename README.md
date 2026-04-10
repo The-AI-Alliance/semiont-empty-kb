@@ -1,11 +1,11 @@
-# Empty Semiont Knowledge Base
+# Semiont Template Knowledge Base
 
 A template repository for creating new [Semiont](https://github.com/The-AI-Alliance/semiont) knowledge bases.
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/The-AI-Alliance/semiont-empty-kb.git my-kb
+git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
 export ANTHROPIC_API_KEY=<your-api-key>
 .semiont/scripts/local_backend.sh --email admin@example.com --password password

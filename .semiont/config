@@ -1,5 +1,5 @@
 [project]
-name = "Empty Knowledge Base"
+name = "Template Knowledge Base"
 version = "0.1.0"
 
 [git]
