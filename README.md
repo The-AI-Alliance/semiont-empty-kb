@@ -63,7 +63,7 @@ Add documents anywhere in the project root. They become resources in the knowled
 └── scripts/                      # Backend startup script
 ```
 
-The Semiont backend writes state into `.semiont/` (e.g. projections and indexes) and stages those changes with `git add`. You are responsible for committing, pushing, and managing the rest of the Git lifecycle.
+The Semiont backend writes event streams into `.semiont/events/` and stages them with `git add`. You are responsible for committing, pushing, and managing the rest of the Git lifecycle.
 
 ## Documentation
 
