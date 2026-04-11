@@ -29,11 +29,12 @@ export ANTHROPIC_API_KEY=<your-api-key>
 .semiont/scripts/local_backend.sh --list-configs
 ```
 
-In a second terminal:
+In a second terminal, build and run the frontend (`container` can be replaced with `docker` or `podman`):
 
 ```bash
 cd my-kb
-.semiont/scripts/local_frontend.sh
+container build --tag semiont-frontend --file .semiont/containers/Dockerfile.frontend .
+container run --publish 3000:3000 -it semiont-frontend
 ```
 
 Open **http://localhost:3000** and enter **http://localhost:4000** as the knowledge base URL.
