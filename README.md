@@ -4,7 +4,9 @@ A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance
 
 ## Prerequisites
 
+- [Git](https://git-scm.com/)
 - A container runtime: [Apple Container](https://github.com/apple/container), [Docker](https://www.docker.com/), or [Podman](https://podman.io/)
+- An inference provider: [Ollama](https://ollama.com/) for fully local inference, or an [Anthropic](https://www.anthropic.com/) API key for cloud inference. See [Inference Configuration](#inference-configuration) for details.
 
 No npm or Node.js installation required — everything runs in containers.
 
@@ -24,7 +26,7 @@ In a second terminal, start the frontend (`container` can be replaced with `dock
 container run --publish 3000:3000 -it ghcr.io/the-ai-alliance/semiont-frontend:latest
 ```
 
-Open **http://localhost:3000**, enter **http://localhost:4000** as the knowledge base URL, and log in with the email and password above.
+Open **http://localhost:3000**. In the Knowledge Bases panel, enter host `localhost`, port `4000`, and the email and password you provided above.
 
 ## Inference Configuration
 
@@ -48,7 +50,7 @@ To create your own config, add a `.toml` file to `.semiont/containers/semiontcon
 
 ## Adding Documents
 
-Add documents anywhere in the project root. They become resources in the knowledge base when you upload them through the UI or CLI.
+Add documents anywhere in the project root. They become resources in the knowledge base when you upload them through the UI or CLI. This repo is a Git repository — use `git` to track your documents, branch, and collaborate just as you would with any other project.
 
 ## What's Inside
 
@@ -60,6 +62,8 @@ Add documents anywhere in the project root. They become resources in the knowled
 │   └── semiontconfig/            # Inference config variants (.toml)
 └── scripts/                      # Backend startup script
 ```
+
+The Semiont backend writes state into `.semiont/` (e.g. projections and indexes) and stages those changes with `git add`. You are responsible for committing, pushing, and managing the rest of the Git lifecycle.
 
 ## Documentation
 
