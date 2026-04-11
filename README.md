@@ -29,12 +29,10 @@ export ANTHROPIC_API_KEY=<your-api-key>
 .semiont/scripts/local_backend.sh --list-configs
 ```
 
-In a second terminal, build and run the frontend (`container` can be replaced with `docker` or `podman`):
+In a second terminal, start the frontend (`container` can be replaced with `docker` or `podman`):
 
 ```bash
-cd my-kb
-container build --tag semiont-frontend --file .semiont/containers/Dockerfile.frontend .
-container run --publish 3000:3000 -it semiont-frontend
+container run --publish 3000:3000 -it ghcr.io/the-ai-alliance/semiont-frontend:latest
 ```
 
 Open **http://localhost:3000** and enter **http://localhost:4000** as the knowledge base URL.
@@ -53,9 +51,10 @@ The `.semiont/` directory contains the infrastructure to run a Semiont backend a
 ```
 .semiont/
 ├── config                        # Project name and settings
-├── compose/                      # Docker Compose files
-├── containers/                   # Dockerfiles for backend and frontend
-└── scripts/                      # Convenience scripts for local development
+├── compose/                      # Docker Compose file for backend
+├── containers/                   # Dockerfile and inference configs for backend
+│   └── semiontconfig/            # Inference config variants (.toml)
+└── scripts/                      # Backend startup script
 ```
 
 Add your documents anywhere in the project root. They become resources in the knowledge base when you upload them through the UI or CLI.
