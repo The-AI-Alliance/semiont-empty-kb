@@ -201,9 +201,18 @@ if curl -sf http://localhost:11434/api/version > /dev/null 2>&1; then
     warn "Ollama is running on the host but not reachable from containers."
     echo "   The backend runs in a container and needs Ollama at ${HOST_ADDR}:11434."
     echo ""
+    if pgrep -f 'Ollama.app/Contents' > /dev/null 2>&1; then
+      echo "   Detected: Ollama Desktop app"
+    elif pgrep -f 'ollama serve' > /dev/null 2>&1; then
+      echo "   Detected: ollama serve daemon"
+    fi
+    echo ""
     echo "   Fix: configure Ollama to listen on all interfaces:"
-    echo "     ${BOLD}launchctl setenv OLLAMA_HOST 0.0.0.0${RESET}"
-    echo "   Then restart Ollama Desktop and re-run this script."
+    echo -e "     ${BOLD}launchctl setenv OLLAMA_HOST 0.0.0.0${RESET}"
+    echo "   Then fully quit Ollama Desktop from the menu bar and relaunch it."
+    echo ""
+    echo "   (If launchctl doesn't stick, quit Ollama Desktop entirely and run"
+    echo -e "    ${BOLD}OLLAMA_HOST=0.0.0.0:11434 ollama serve${RESET} from a terminal.)"
     echo ""
     exit 1
   fi
