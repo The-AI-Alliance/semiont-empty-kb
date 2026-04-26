@@ -293,7 +293,7 @@ log "Building backend image..."
 run_cmd $RT build $CACHE_FLAG --tag semiont-backend \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
   --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
-  --file .semiont/containers/Dockerfile .
+  --file .semiont/containers/Dockerfile.backend .
 ok "Backend image built"
 
 log "Building worker image..."
