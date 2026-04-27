@@ -113,7 +113,11 @@ fi
 # Handle --clean-ollama
 if [[ "${CLEAN_OLLAMA}" == "true" ]]; then
   log "Removing Ollama model cache volume..."
-  run_cmd "${RT}" volume rm semiont-ollama-models 2>/dev/null && ok "Removed." || warn "Volume not found."
+  if run_cmd "${RT}" volume rm semiont-ollama-models 2>/dev/null; then
+    ok "Removed."
+  else
+    warn "Volume not found."
+  fi
   exit 0
 fi
 
@@ -135,24 +139,24 @@ fi
 
 # --- Resolve host address for container networking ---
 
-HOST_ADDR=$($RT run --rm node:22-alpine sh -c "ip route | awk '/default/{print \$3}'" 2>/dev/null)
+HOST_ADDR=$("$RT" run --rm node:22-alpine sh -c "ip route | awk '/default/{print \$3}'" 2>/dev/null)
 log "Host address: ${DIM}${HOST_ADDR}${RESET}"
 
 # --- Neo4j ---
 
 NEO4J_NAME="semiont-neo4j"
 banner "Neo4j"
-run_cmd $RT stop "$NEO4J_NAME" 2>/dev/null || true
-run_cmd $RT rm "$NEO4J_NAME" 2>/dev/null || true
+run_cmd "$RT" stop "$NEO4J_NAME" 2>/dev/null || true
+run_cmd "$RT" rm "$NEO4J_NAME" 2>/dev/null || true
 sleep 1
 PID_ON_PORT=$(lsof -ti :7687 2>/dev/null || echo "")
 if [[ -n "$PID_ON_PORT" ]]; then
   log "Killing existing process on port 7687 (PID ${PID_ON_PORT})"
-  kill $PID_ON_PORT 2>/dev/null || true
+  kill "$PID_ON_PORT" 2>/dev/null || true
   sleep 1
 fi
 
-run_cmd $RT run -d --rm \
+run_cmd "$RT" run -d --rm \
   --name "$NEO4J_NAME" \
   -p 7474:7474 \
   -p 7687:7687 \
@@ -160,7 +164,7 @@ run_cmd $RT run -d --rm \
   -e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
   neo4j:5-community > /dev/null
 
-for i in $(seq 1 30); do
+for _ in $(seq 1 30); do
   if curl -sf http://localhost:7474 > /dev/null 2>&1; then break; fi
   sleep 1
 done
@@ -170,22 +174,22 @@ ok "Neo4j on bolt://localhost:7687 (browser: http://localhost:7474)"
 
 QDRANT_NAME="semiont-qdrant"
 banner "Qdrant"
-run_cmd $RT stop "$QDRANT_NAME" 2>/dev/null || true
-run_cmd $RT rm "$QDRANT_NAME" 2>/dev/null || true
+run_cmd "$RT" stop "$QDRANT_NAME" 2>/dev/null || true
+run_cmd "$RT" rm "$QDRANT_NAME" 2>/dev/null || true
 sleep 1
 PID_ON_PORT=$(lsof -ti :6333 2>/dev/null || echo "")
 if [[ -n "$PID_ON_PORT" ]]; then
   log "Killing existing process on port 6333 (PID ${PID_ON_PORT})"
-  kill $PID_ON_PORT 2>/dev/null || true
+  kill "$PID_ON_PORT" 2>/dev/null || true
   sleep 1
 fi
 
-run_cmd $RT run -d --rm \
+run_cmd "$RT" run -d --rm \
   --name "$QDRANT_NAME" \
   -p 6333:6333 \
   qdrant/qdrant > /dev/null
 
-for i in $(seq 1 15); do
+for _ in $(seq 1 15); do
   if curl -sf http://localhost:6333/healthz > /dev/null 2>&1; then break; fi
   sleep 1
 done
@@ -246,7 +250,7 @@ else
     -v "${OLLAMA_VOLUME}" \
     ollama/ollama > /dev/null
 
-  for i in $(seq 1 30); do
+  for _ in $(seq 1 30); do
     if curl -sf http://localhost:11434/api/version > /dev/null 2>&1; then break; fi
     sleep 1
   done
@@ -257,25 +261,25 @@ fi
 
 POSTGRES_NAME="semiont-postgres"
 banner "PostgreSQL"
-run_cmd $RT stop "$POSTGRES_NAME" 2>/dev/null || true
-run_cmd $RT rm "$POSTGRES_NAME" 2>/dev/null || true
+run_cmd "$RT" stop "$POSTGRES_NAME" 2>/dev/null || true
+run_cmd "$RT" rm "$POSTGRES_NAME" 2>/dev/null || true
 sleep 1
 PID_ON_PORT=$(lsof -ti :5432 2>/dev/null || echo "")
 if [[ -n "$PID_ON_PORT" ]]; then
   log "Killing existing process on port 5432 (PID ${PID_ON_PORT})"
-  kill $PID_ON_PORT 2>/dev/null || true
+  kill "$PID_ON_PORT" 2>/dev/null || true
   sleep 1
 fi
 
-run_cmd $RT run -d --rm \
+run_cmd "$RT" run -d --rm \
   --name "$POSTGRES_NAME" \
   -p 5432:5432 \
   -e POSTGRES_PASSWORD=localpass \
   -e POSTGRES_DB=semiont \
   postgres:15-alpine > /dev/null
 
-for i in $(seq 1 20); do
-  if $RT run --rm postgres:15-alpine pg_isready -h "$HOST_ADDR" -p 5432 > /dev/null 2>&1; then break; fi
+for _ in $(seq 1 20); do
+  if "$RT" run --rm postgres:15-alpine pg_isready -h "$HOST_ADDR" -p 5432 > /dev/null 2>&1; then break; fi
   sleep 0.5
 done
 ok "PostgreSQL on port 5432"
@@ -290,21 +294,21 @@ log "Worker secret: ${DIM}(generated)${RESET}"
 banner "Building Images"
 
 log "Building backend image..."
-run_cmd $RT build $CACHE_FLAG --tag semiont-backend \
+run_cmd "$RT" build $CACHE_FLAG --tag semiont-backend \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
   --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
   --file .semiont/containers/Dockerfile.backend .
 ok "Backend image built"
 
 log "Building worker image..."
-run_cmd $RT build $CACHE_FLAG --tag semiont-worker \
+run_cmd "$RT" build $CACHE_FLAG --tag semiont-worker \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
   --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
   --file .semiont/containers/Dockerfile.worker .
 ok "Worker image built"
 
 log "Building smelter image..."
-run_cmd $RT build $CACHE_FLAG --tag semiont-smelter \
+run_cmd "$RT" build $CACHE_FLAG --tag semiont-smelter \
   --build-arg NPM_REGISTRY="$NPM_REGISTRY" \
   --build-arg SEMIONT_CONFIG="$CONFIG_FILE" \
   --file .semiont/containers/Dockerfile.smelter .
@@ -326,11 +330,11 @@ if grep -q 'ANTHROPIC_API_KEY' "${CONFIG_FILE}"; then
   ANTHROPIC_ARGS=(--env ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY")
 fi
 
-$RT stop semiont-backend 2>/dev/null || true
-$RT rm semiont-backend 2>/dev/null || true
+"$RT" stop semiont-backend 2>/dev/null || true
+"$RT" rm semiont-backend 2>/dev/null || true
 sleep 1
 
-run_cmd $RT run -d \
+run_cmd "$RT" run -d \
   --name semiont-backend \
   --publish 4000:4000 \
   --memory 8G \
@@ -345,7 +349,7 @@ run_cmd $RT run -d \
   semiont-backend > /dev/null
 
 log "Waiting for backend health..."
-for i in $(seq 1 120); do
+for _ in $(seq 1 120); do
   if curl -sf http://localhost:4000/api/health > /dev/null 2>&1; then break; fi
   sleep 1
 done
@@ -355,11 +359,11 @@ ok "Backend healthy"
 
 banner "Starting Worker Pool"
 
-$RT stop semiont-worker 2>/dev/null || true
-$RT rm semiont-worker 2>/dev/null || true
+"$RT" stop semiont-worker 2>/dev/null || true
+"$RT" rm semiont-worker 2>/dev/null || true
 sleep 1
 
-run_cmd $RT run -d --rm \
+run_cmd "$RT" run -d --rm \
   --name semiont-worker \
   --memory 8G \
   --publish 9090:9090 \
@@ -378,11 +382,11 @@ ok "Worker pool started (health: http://localhost:9090)"
 
 banner "Starting Smelter"
 
-$RT stop semiont-smelter 2>/dev/null || true
-$RT rm semiont-smelter 2>/dev/null || true
+"$RT" stop semiont-smelter 2>/dev/null || true
+"$RT" rm semiont-smelter 2>/dev/null || true
 sleep 1
 
-run_cmd $RT run -d --rm \
+run_cmd "$RT" run -d --rm \
   --name semiont-smelter \
   --memory 4G \
   --publish 9091:9091 \
@@ -400,8 +404,8 @@ ok "Smelter started (health: http://localhost:9091)"
 # --- Tail logs ---
 
 banner "Containers"
-$RT list 2>/dev/null | head -1
-$RT list 2>/dev/null | grep semiont- || true
+"$RT" list 2>/dev/null | head -1
+"$RT" list 2>/dev/null | grep semiont- || true
 
 echo -e "\033[2m[$(date '+%Y-%m-%d %H:%M:%S')] start.sh containers ready\033[0m"
 
@@ -410,12 +414,12 @@ log "Backend: semiont-backend | Worker: semiont-worker | Smelter: semiont-smelte
 log "Press Ctrl+C to stop"
 
 sleep 2
-($RT logs --follow semiont-backend 2>/dev/null || true) &
-LOG_PIDS=$!
-($RT logs --follow semiont-worker 2>/dev/null || true) &
-LOG_PIDS="$LOG_PIDS $!"
-($RT logs --follow semiont-smelter 2>/dev/null || true) &
-LOG_PIDS="$LOG_PIDS $!"
+("$RT" logs --follow semiont-backend 2>/dev/null || true) &
+LOG_PIDS=("$!")
+("$RT" logs --follow semiont-worker 2>/dev/null || true) &
+LOG_PIDS+=("$!")
+("$RT" logs --follow semiont-smelter 2>/dev/null || true) &
+LOG_PIDS+=("$!")
 
-trap "kill $LOG_PIDS 2>/dev/null" EXIT
+trap 'kill "${LOG_PIDS[@]}" 2>/dev/null' EXIT
 wait || true
