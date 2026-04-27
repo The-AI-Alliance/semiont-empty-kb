@@ -135,6 +135,23 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# --- Validate admin credentials ---
+
+if [[ -n "$ADMIN_EMAIL" || -n "$ADMIN_PASSWORD" ]]; then
+  if [[ -z "$ADMIN_EMAIL" || -z "$ADMIN_PASSWORD" ]]; then
+    fail "--email and --password must be provided together."
+    exit 1
+  fi
+  if [[ ! "$ADMIN_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+    fail "Invalid --email: '$ADMIN_EMAIL'"
+    exit 1
+  fi
+  if [[ ${#ADMIN_PASSWORD} -lt 8 ]]; then
+    fail "--password must be at least 8 characters."
+    exit 1
+  fi
+fi
+
 # --- List or validate config ---
 
 if [[ "${LIST_CONFIGS}" == "true" ]]; then
