@@ -91,6 +91,7 @@ ADMIN_PASSWORD=""
 CLEAN_OLLAMA=false
 LIST_CONFIGS=false
 FORCE_KILL_PORTS=false
+OBSERVE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -101,6 +102,7 @@ while [[ $# -gt 0 ]]; do
     --password) ADMIN_PASSWORD="$2"; shift 2 ;;
     --clean-ollama) CLEAN_OLLAMA=true; shift ;;
     --force-kill-ports) FORCE_KILL_PORTS=true; shift ;;
+    --observe) OBSERVE=true; shift ;;
     --quiet|-q) QUIET=true; shift ;;
     --help|-h)
       echo "Usage: start.sh [options]"
@@ -116,6 +118,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --password <pass>     Admin user password (requires --email)"
       echo "  --clean-ollama        Remove the Ollama model cache volume and exit"
       echo "  --force-kill-ports    Kill any non-Semiont process holding a needed port"
+      echo "  --observe             Run a Jaeger sidecar and export OTel traces + metrics to it"
       echo "  --quiet, -q           Suppress informational output"
       echo "  --help, -h            Show this help"
       echo ""
@@ -245,7 +248,7 @@ log "Host address: ${DIM}${HOST_ADDR}${RESET}"
 
 banner "Preflight"
 
-for c in semiont-neo4j semiont-qdrant semiont-postgres semiont-backend semiont-worker semiont-smelter; do
+for c in semiont-jaeger semiont-neo4j semiont-qdrant semiont-postgres semiont-backend semiont-worker semiont-smelter; do
   run_cmd "$RT" stop "$c" 2>/dev/null || true
 done
 sleep 1
@@ -257,7 +260,30 @@ require_port_free 5432 "PostgreSQL"
 require_port_free 4000 "Backend"
 require_port_free 9090 "Worker"
 require_port_free 9091 "Smelter"
+if $OBSERVE; then
+  require_port_free 16686 "Jaeger UI"
+  require_port_free 4318 "Jaeger OTLP"
+fi
 ok "Required ports are free"
+
+# --- Jaeger (observability) ---
+#
+# When --observe is set, run jaegertracing/all-in-one and configure the
+# Semiont processes to push OTLP traces + metrics there. The doc's Tier 3
+# metrics export over the same endpoint, so one env var covers both.
+
+OTEL_ARGS=()
+if $OBSERVE; then
+  banner "Jaeger"
+  run_cmd "$RT" run -d --rm \
+    --name semiont-jaeger \
+    -p 16686:16686 \
+    -p 4318:4318 \
+    jaegertracing/all-in-one:latest > /dev/null
+  wait_for_http "Jaeger UI" http://localhost:16686 30
+  ok "Jaeger UI on http://localhost:16686 (OTLP collector: ${HOST_ADDR}:4318)"
+  OTEL_ARGS=(--env OTEL_EXPORTER_OTLP_ENDPOINT="http://${HOST_ADDR}:4318")
+fi
 
 # --- Neo4j ---
 
@@ -410,6 +436,7 @@ run_cmd "$RT" run -d --rm \
   --memory 8G \
   --volume "$(pwd)":/kb \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
+  ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env POSTGRES_HOST="$HOST_ADDR" \
   --env NEO4J_HOST="$HOST_ADDR" \
   --env QDRANT_HOST="${HOST_ADDR}" \
@@ -431,6 +458,7 @@ run_cmd "$RT" run -d --rm \
   --memory 8G \
   --publish 9090:9090 \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
+  ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
   --env OLLAMA_HOST="${HOST_ADDR}" \
   --env NEO4J_HOST="${HOST_ADDR}" \
@@ -451,6 +479,7 @@ run_cmd "$RT" run -d --rm \
   --memory 4G \
   --publish 9091:9091 \
   ${USER_ENV_ARGS[@]+"${USER_ENV_ARGS[@]}"} \
+  ${OTEL_ARGS[@]+"${OTEL_ARGS[@]}"} \
   --env BACKEND_HOST="${HOST_ADDR}" \
   --env OLLAMA_HOST="${HOST_ADDR}" \
   --env QDRANT_HOST="${HOST_ADDR}" \
