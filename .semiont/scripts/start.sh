@@ -248,8 +248,14 @@ log "Host address: ${DIM}${HOST_ADDR}${RESET}"
 
 banner "Preflight"
 
+# `stop` only halts a running container; under Apple Container the stopped
+# instance persists and the next `run --name <c>` fails with "already exists".
+# `rm` after `stop` (both with `|| true`) makes the loop idempotent across
+# all three states the container could be in: not present, running, or
+# stopped-but-not-removed.
 for c in semiont-jaeger semiont-neo4j semiont-qdrant semiont-postgres semiont-backend semiont-worker semiont-smelter; do
   run_cmd "$RT" stop "$c" 2>/dev/null || true
+  run_cmd "$RT" rm "$c" 2>/dev/null || true
 done
 sleep 1
 
