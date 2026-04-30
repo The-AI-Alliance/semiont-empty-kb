@@ -1,15 +1,40 @@
-# Semiont backend with Neo4j, Qdrant, Ollama, and PostgreSQL
+# Semiont backend stack — backend, worker pool, smelter, plus Neo4j, Qdrant,
+# Ollama, and PostgreSQL. Equivalent end state to .semiont/scripts/start.sh.
 #
-# Usage:
-#   export ANTHROPIC_API_KEY=<your-key>
+# Quick start (ollama-gemma, the default):
+#
+#   export SEMIONT_WORKER_SECRET=$(openssl rand -hex 32)
 #   docker compose -f .semiont/compose/backend.yml up
 #   docker compose -f .semiont/compose/backend.yml exec ollama ollama pull nomic-embed-text
+#   docker compose -f .semiont/compose/backend.yml exec ollama ollama pull gemma3:4b
 #
-# To create an admin user, set ADMIN_EMAIL and ADMIN_PASSWORD env vars.
-# No user is created if these are omitted.
+# Anthropic config (faster, cloud inference):
+#
+#   export ANTHROPIC_API_KEY=<your-key>
+#   export SEMIONT_CONFIG=.semiont/containers/semiontconfig/anthropic.toml
+#   export SEMIONT_WORKER_SECRET=$(openssl rand -hex 32)
+#   docker compose -f .semiont/compose/backend.yml up
+#
+# Optional admin user (set both or neither):
+#   export ADMIN_EMAIL=admin@example.com
+#   export ADMIN_PASSWORD=<at-least-8-chars>
+#
+# Observability (Jaeger sidecar — UI on http://localhost:16686):
+#   export OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+#   docker compose -f .semiont/compose/backend.yml --profile observe up
+#
+# Force a fresh build:
+#   docker compose -f .semiont/compose/backend.yml build --no-cache
+
+x-semiont-build: &semiont-build
+  context: ../..
+  args:
+    NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    SEMIONT_CONFIG: ${SEMIONT_CONFIG:-.semiont/containers/semiontconfig/ollama-gemma.toml}
 
 services:
   neo4j:
+    container_name: semiont-neo4j
     image: neo4j:5-community
     ports:
       - "7474:7474"
@@ -24,6 +49,7 @@ services:
       retries: 10
 
   qdrant:
+    container_name: semiont-qdrant
     image: qdrant/qdrant
     ports:
       - "6333:6333"
@@ -34,9 +60,11 @@ services:
       retries: 10
 
   ollama:
+    container_name: semiont-ollama
     image: ollama/ollama
     ports:
       - "11434:11434"
+    mem_limit: 24g
     volumes:
       - ollama_models:/root/.ollama
     healthcheck:
@@ -46,6 +74,7 @@ services:
       retries: 15
 
   postgres:
+    container_name: semiont-postgres
     image: postgres:15-alpine
     ports:
       - "5432:5432"
@@ -58,22 +87,39 @@ services:
       timeout: 3s
       retries: 10
 
+  jaeger:
+    container_name: semiont-jaeger
+    image: jaegertracing/all-in-one:latest
+    profiles: ["observe"]
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:16686"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
+    container_name: semiont-backend
     build:
-      context: ../..
+      <<: *semiont-build
       dockerfile: .semiont/containers/Dockerfile.backend
     ports:
       - "4000:4000"
+    mem_limit: 8g
     volumes:
       - ../..:/kb
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       POSTGRES_HOST: postgres
       NEO4J_HOST: neo4j
       QDRANT_HOST: qdrant
       OLLAMA_HOST: ollama
+      SEMIONT_WORKER_SECRET: ${SEMIONT_WORKER_SECRET:?SEMIONT_WORKER_SECRET must be set, e.g. export SEMIONT_WORKER_SECRET=$$(openssl rand -hex 32)}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     depends_on:
       neo4j:
         condition: service_healthy
@@ -82,6 +128,48 @@ services:
       ollama:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+
+  worker:
+    container_name: semiont-worker
+    build:
+      <<: *semiont-build
+      dockerfile: .semiont/containers/Dockerfile.worker
+    ports:
+      - "9090:9090"
+    mem_limit: 8g
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BACKEND_HOST: backend
+      OLLAMA_HOST: ollama
+      NEO4J_HOST: neo4j
+      QDRANT_HOST: qdrant
+      POSTGRES_HOST: postgres
+      SEMIONT_WORKER_SECRET: ${SEMIONT_WORKER_SECRET:?SEMIONT_WORKER_SECRET must be set, e.g. export SEMIONT_WORKER_SECRET=$$(openssl rand -hex 32)}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  smelter:
+    container_name: semiont-smelter
+    build:
+      <<: *semiont-build
+      dockerfile: .semiont/containers/Dockerfile.smelter
+    ports:
+      - "9091:9091"
+    mem_limit: 4g
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BACKEND_HOST: backend
+      OLLAMA_HOST: ollama
+      QDRANT_HOST: qdrant
+      NEO4J_HOST: neo4j
+      POSTGRES_HOST: postgres
+      SEMIONT_WORKER_SECRET: ${SEMIONT_WORKER_SECRET:?SEMIONT_WORKER_SECRET must be set, e.g. export SEMIONT_WORKER_SECRET=$$(openssl rand -hex 32)}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    depends_on:
+      backend:
         condition: service_healthy
 
 volumes:
