@@ -7,14 +7,17 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 ENV_FILE=".devcontainer/.env"
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "ERROR: $ENV_FILE missing — re-run .devcontainer/post-create.sh"
+ADMIN_FILE=".devcontainer/admin.json"
+if [[ ! -f "$ENV_FILE" || ! -f "$ADMIN_FILE" ]]; then
+  echo "ERROR: $ENV_FILE or $ADMIN_FILE missing — re-run .devcontainer/post-create.sh"
   exit 1
 fi
 
 set -a
 # shellcheck source=/dev/null
 . "$ENV_FILE"
+ADMIN_EMAIL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["email"])' "$ADMIN_FILE")
+ADMIN_PASSWORD=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["password"])' "$ADMIN_FILE")
 set +a
 
 if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
@@ -41,7 +44,10 @@ Semiont stack is up.
   Backend API    → port 4000  (forwarded by Codespaces)
   Jaeger UI      → port 16686
   Neo4j Browser  → port 7474   (login: neo4j / localpass)
-  Admin user     → admin@example.com / password
+
+Admin credentials (from $ADMIN_FILE):
+  email:    $ADMIN_EMAIL
+  password: $ADMIN_PASSWORD
 
 Bring down with:  docker compose -f .semiont/compose/backend.yml --profile observe down
 EOF

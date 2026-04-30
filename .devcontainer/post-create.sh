@@ -13,6 +13,19 @@ if [[ ! -f "$ENV_FILE" ]] || ! grep -q '^SEMIONT_WORKER_SECRET=' "$ENV_FILE"; th
   echo "Generated SEMIONT_WORKER_SECRET → $ENV_FILE"
 fi
 
+ADMIN_FILE=".devcontainer/admin.json"
+if [[ ! -f "$ADMIN_FILE" ]]; then
+  email="admin-$(openssl rand -hex 4)@semiont.local"
+  password="$(openssl rand -hex 16)"
+  cat > "$ADMIN_FILE" <<EOF
+{
+  "email": "$email",
+  "password": "$password"
+}
+EOF
+  echo "Generated admin credentials → $ADMIN_FILE"
+fi
+
 # Pull third-party images (neo4j, qdrant, postgres, ollama, jaeger).
 # Sourcing the env file gives compose a SEMIONT_WORKER_SECRET so it'll render
 # the file even though we're only pulling, not running.

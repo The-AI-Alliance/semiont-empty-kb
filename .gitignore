@@ -1,3 +1,4 @@
 .plans
 .devcontainer/.env
+.devcontainer/admin.json
 

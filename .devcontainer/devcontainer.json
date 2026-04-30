@@ -14,8 +14,6 @@
 
   "containerEnv": {
     "SEMIONT_CONFIG": ".semiont/containers/semiontconfig/anthropic.toml",
-    "ADMIN_EMAIL": "admin@example.com",
-    "ADMIN_PASSWORD": "password",
     "OTEL_EXPORTER_OTLP_ENDPOINT": "http://jaeger:4318",
     "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
   },
