@@ -26,23 +26,27 @@ EOF
   echo "Generated admin credentials → $ADMIN_FILE"
 fi
 
-# Pull third-party images (neo4j, qdrant, postgres, ollama, jaeger).
-# Sourcing the env file gives compose a SEMIONT_WORKER_SECRET so it'll render
-# the file even though we're only pulling, not running.
-set -a
-# shellcheck source=/dev/null
-. "$ENV_FILE"
-set +a
-
-docker compose \
+COMPOSE_BASE=(--env-file "$ENV_FILE" \
   -f .semiont/compose/backend.yml \
-  -f .devcontainer/docker-compose.codespaces.yml \
-  --profile observe \
-  pull
+  -f .devcontainer/docker-compose.codespaces.yml)
+
+# Pull third-party images (neo4j, qdrant, postgres, ollama, jaeger).
+docker compose "${COMPOSE_BASE[@]}" --profile observe pull
 
 # Build the three Semiont images now (rather than on first `up`) so the user
 # sees a ready stack on first shell.
-docker compose \
-  -f .semiont/compose/backend.yml \
-  -f .devcontainer/docker-compose.codespaces.yml \
-  build
+docker compose "${COMPOSE_BASE[@]}" build
+
+# Make .devcontainer/.env auto-sourced in interactive shells so the user can
+# run `docker compose …` without compose blowing up on missing variables.
+ENV_FILE_ABS="$(cd "$(dirname "$ENV_FILE")" && pwd)/$(basename "$ENV_FILE")"
+SOURCE_LINE="[ -f \"$ENV_FILE_ABS\" ] && set -a && . \"$ENV_FILE_ABS\" && set +a"
+for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  if [[ -f "$rc" ]] && ! grep -qF "$ENV_FILE_ABS" "$rc"; then
+    {
+      echo ""
+      echo "# semiont-template-kb: source per-codespace env"
+      echo "$SOURCE_LINE"
+    } >> "$rc"
+  fi
+done

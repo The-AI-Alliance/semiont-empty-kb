@@ -46,19 +46,19 @@ WARNING: ANTHROPIC_API_KEY is not set.
 EOF
 fi
 
-echo "Bringing up backend stack (compose up -d --wait)..."
+echo "Bringing up backend stack (compose up -d --wait, timeout 5 min)..."
+
+COMPOSE_FILES=(--env-file "$ENV_FILE" \
+  -f .semiont/compose/backend.yml \
+  -f .devcontainer/docker-compose.codespaces.yml)
 
 COMPOSE_OK=true
-if ! docker compose \
-  -f .semiont/compose/backend.yml \
-  -f .devcontainer/docker-compose.codespaces.yml \
-  --profile observe \
-  up -d --wait; then
+if ! docker compose "${COMPOSE_FILES[@]}" --profile observe up -d --wait --wait-timeout 300; then
   COMPOSE_OK=false
 fi
 
 # Best-effort embedding-model pull (idempotent, ignored on failure)
-docker compose -f .semiont/compose/backend.yml exec -T ollama \
+docker compose "${COMPOSE_FILES[@]}" exec -T ollama \
   ollama pull nomic-embed-text 2>/dev/null || true
 
 if $COMPOSE_OK; then
@@ -73,20 +73,18 @@ EOF
   print_banner
   echo "Bring down with:  docker compose -f .semiont/compose/backend.yml --profile observe down"
 else
-  cat <<EOF
-
-ERROR: docker compose up did not bring all services healthy.
-
-Diagnostics:
-  docker compose -f .semiont/compose/backend.yml ps
-  docker compose -f .semiont/compose/backend.yml logs --tail=200 backend
-  docker compose -f .semiont/compose/backend.yml logs --tail=200 worker
-  docker compose -f .semiont/compose/backend.yml logs --tail=200 smelter
-
-After fixing, retry:
-  bash .devcontainer/post-start.sh
-
-EOF
+  echo
+  echo "ERROR: docker compose up did not bring all services healthy."
+  echo
+  echo "── service state ─────────────────────────────────────────────────"
+  docker compose "${COMPOSE_FILES[@]}" ps || true
+  for svc in backend worker smelter; do
+    echo
+    echo "── $svc (last 100 log lines) ────────────────────────────────────"
+    docker compose "${COMPOSE_FILES[@]}" logs --tail=100 "$svc" 2>&1 || true
+  done
+  echo
+  echo "Retry after fixing with:  bash .devcontainer/post-start.sh"
   print_banner
   exit 1
 fi
