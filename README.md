@@ -7,9 +7,9 @@
 
 A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance/semiont) knowledge base. Clone this repo, add your documents, and run the start script to get a fully functional semantic wiki backed by AI-powered annotation, linking, and generation.
 
-## Quick Start
+Pick one path — Local or Codespaces — and follow it end to end.
 
-### Local
+## Quick Start: Local
 
 **Prerequisites:**
 
@@ -19,6 +19,8 @@ A starting point for creating a new [Semiont](https://github.com/The-AI-Alliance
 
 No npm or Node.js installation required — everything runs in containers.
 
+### Start the backend
+
 ```bash
 git clone https://github.com/The-AI-Alliance/semiont-template-kb.git my-kb
 cd my-kb
@@ -27,21 +29,9 @@ cd my-kb
 
 This builds and starts the full backend stack: PostgreSQL, Neo4j, Qdrant, Ollama, and the Semiont API server. The script auto-detects your container runtime.
 
-### Codespaces
+### Browse the knowledge base
 
-For a KB you intend to keep, **[use this template](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance) first to create your own repo**, then launch a Codespace from there — that gives you write access for committing your annotations and event streams. The badge below launches on this template directly; useful for trying out but read-only.
-
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new/The-AI-Alliance/semiont-template-kb)
-
-> **Before launching:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the backend comes up but inference is non-functional until you add the secret and rebuild the container.
-
-A Codespace builds the backend stack via `docker compose` with the anthropic config. First-time setup takes 5-10 minutes (image build, model pull). On every start, the configuration generates fresh admin credentials, saves them to `.devcontainer/admin.json`, and prints them in the startup banner.
-
-## Browse this Knowledge Base
-
-Start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), then open it at **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel.
-
-### Local
+Start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), then open it at **http://localhost:3000** and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
@@ -50,9 +40,21 @@ Start a Semiont browser by [running the container or desktop app](https://github
 | Email | the email you passed to `--email` |
 | Password | the password you passed to `--password` |
 
-### Codespaces
+## Quick Start: Codespaces
 
-Forward the codespace's backend port to your local machine, so the Semiont browser can reach it the same way it would a local backend:
+For a KB you intend to keep, **[use this template](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance) first to create your own repo**, then launch a Codespace from there — that gives you write access for committing your annotations and event streams. The badge below launches on this template directly; useful for trying out but read-only.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new/The-AI-Alliance/semiont-template-kb)
+
+> **Before launching:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the backend comes up but inference is non-functional until you add the secret and rebuild the container.
+
+### Start the backend
+
+A Codespace builds the backend stack via `docker compose` with the anthropic config. First-time setup takes 5-10 minutes (image build, model pull). On every start, the configuration generates fresh admin credentials, saves them to `.devcontainer/admin.json`, and prints them in the startup banner.
+
+### Browse the knowledge base
+
+Forward the codespace's backend port to your local machine so the Semiont browser can reach it the same way it would a local backend:
 
 ```bash
 gh codespace ports forward 4000:4000
@@ -64,7 +66,7 @@ If `gh` rejects this with `must have admin rights to Repository`, your `gh` inst
 gh auth refresh -h github.com -s codespace
 ```
 
-Leave the forward running, then in the **Knowledge Bases** panel:
+Leave the forward running. Then start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), open it at **http://localhost:3000**, and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
