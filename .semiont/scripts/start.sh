@@ -317,7 +317,7 @@ run_cmd "$RT" run -d --rm \
   -p 6333:6333 \
   qdrant/qdrant > /dev/null
 
-wait_for_http Qdrant http://localhost:6333/healthz 15
+wait_for_http Qdrant http://localhost:6333/readyz 15
 ok "Qdrant on http://localhost:6333"
 
 # --- Ollama ---

@@ -9,7 +9,7 @@
 
 services:
   ollama:
-    mem_limit: 2g
+    mem_limit: 4g
   backend:
     mem_limit: 2g
   worker:
