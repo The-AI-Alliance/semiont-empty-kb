@@ -42,15 +42,25 @@ Start a Semiont browser by [running the container or desktop app](https://github
 
 ## Quick Start: Codespaces
 
-For a KB you intend to keep, **[use this template](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance) first to create your own repo**, then launch a Codespace from there — that gives you write access for committing your annotations and event streams. The badge below launches on this template directly; useful for trying out but read-only.
+For a KB you intend to keep, **[use this template](https://github.com/new?template_name=semiont-template-kb&template_owner=The-AI-Alliance) first to create your own repo**, then create a Codespace from there — that gives you write access for committing your annotations and event streams. The commands below target this template directly; useful for trying out, but read-only.
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new/The-AI-Alliance/semiont-template-kb)
+Install the [GitHub CLI (`gh`)](https://cli.github.com/) if you haven't already.
 
-> **Before launching:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the backend comes up but inference is non-functional until you add the secret and rebuild the container.
+> **Before creating:** add `ANTHROPIC_API_KEY` as a [user secret](https://github.com/settings/codespaces) with your repo selected. Otherwise the backend comes up but inference is non-functional until you add the secret and rebuild the container.
+
+### Create the codespace
+
+A premium machine class is recommended — first-time setup builds containers and pulls models, which the larger machine handles more comfortably:
+
+```bash
+gh codespace create --repo The-AI-Alliance/semiont-template-kb --machine premiumLinux
+```
+
+The command prints the new codespace's name. Subsequent `gh codespace` commands will prompt you to pick this codespace if you have more than one (or use it directly if it's the only one).
 
 ### Start the backend
 
-A Codespace builds the backend stack via `docker compose` with the anthropic config. First-time setup takes 5-10 minutes (image build, model pull). On every start, the configuration generates fresh admin credentials, saves them to `.devcontainer/admin.json`, and prints them in the startup banner.
+A Codespace builds the backend stack via `docker compose` with the anthropic config. First-time setup takes 5-10 minutes (image build, model pull). On every start, the configuration generates fresh admin credentials and saves them to `.devcontainer/admin.json`.
 
 ### Browse the knowledge base
 
@@ -66,14 +76,20 @@ If `gh` rejects this with `must have admin rights to Repository`, your `gh` inst
 gh auth refresh -h github.com -s codespace
 ```
 
-Leave the forward running. Then start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), open it at **http://localhost:3000**, and add your knowledge base in the **Knowledge Bases** panel:
+Leave the forward running. In another terminal, fetch the auto-generated admin credentials:
+
+```bash
+gh codespace ssh -- cat .devcontainer/admin.json
+```
+
+Then start a Semiont browser by [running the container or desktop app](https://github.com/The-AI-Alliance/semiont#start-the-browser), open it at **http://localhost:3000**, and add your knowledge base in the **Knowledge Bases** panel:
 
 | Field | Value |
 |---|---|
 | Host | `localhost` |
 | Port | `4000` |
-| Email | shown in the codespace startup banner (also in `.devcontainer/admin.json`) |
-| Password | shown in the codespace startup banner (also in `.devcontainer/admin.json`) |
+| Email | from `.devcontainer/admin.json` (printed by the `gh codespace ssh` command above) |
+| Password | from `.devcontainer/admin.json` (printed by the `gh codespace ssh` command above) |
 
 ## Adding Documents
 
@@ -97,7 +113,7 @@ export ANTHROPIC_API_KEY=<your-api-key>
 .semiont/scripts/start.sh --list-configs
 ```
 
-To create your own config, add a `.toml` file to `.semiont/containers/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/administration/CONFIGURATION.md) for the full reference.
+To create your own config, add a `.toml` file to `.semiont/containers/semiontconfig/`. See the [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) for the full reference.
 
 ## What's Inside
 
@@ -117,9 +133,9 @@ As you work in the knowledge base, the backend writes event streams (annotations
 
 See the [Semiont repository](https://github.com/The-AI-Alliance/semiont) for full documentation:
 
-- [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/administration/CONFIGURATION.md) — inference providers, vector search, graph database settings
-- [Project Layout](https://github.com/The-AI-Alliance/semiont/blob/main/docs/PROJECT-LAYOUT.md) — how `.semiont/` and resource files are organized
-- [Local Semiont](https://github.com/The-AI-Alliance/semiont/blob/main/docs/LOCAL-SEMIONT.md) — alternative setup paths including the Semiont CLI
+- [Configuration Guide](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/administration/CONFIGURATION.md) — inference providers, vector search, graph database settings
+- [Project Layout](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/PROJECT-LAYOUT.md) — how `.semiont/` and resource files are organized
+- [Local Semiont](https://github.com/The-AI-Alliance/semiont/blob/main/docs/system/LOCAL-SEMIONT.md) — alternative setup paths including the Semiont CLI
 
 ## License
 
